@@ -1,0 +1,25 @@
+run:
+  # El tiempo límite para la ejecución. La primera vez tarda más porque cachea datos.
+  timeout: 5m
+
+linters-settings:
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+
+linters:
+  # Por defecto apagamos todo, y prendemos a mano solo los que nos suman valor
+  disable-all: true
+  enable:
+    - errcheck # Chequea que no estés ignorando errores devueltos
+    - gosimple # Sugiere simplificaciones de código
+    - govet # El linter oficial de la librería estándar de Go
+    - ineffassign # Detecta si le asignaste un valor a una variable y nunca lo usaste
+    - staticcheck # Un clásico, encuentra bugs ocultos y problemas de rendimiento
+    - unused # Te avisa de constantes, variables o funciones que no se llaman nunca
+    - gocritic # Es excelente educativamente, te enseña buenas prácticas de Go
+    - gosec # Busca vulnerabilidades de seguridad (ej: SQL injection, hardcoding)
