@@ -1,7 +1,7 @@
 version: "2"
 sql:
-  - schema: "schema.sql"
-    queries: "query.sql"
+  - schema: "db/migrations/"
+    queries: "db/queries/"
     engine: "postgresql"
     gen:
       go:
@@ -10,6 +10,7 @@ sql:
         emit_json_tags: true
         emit_prepared_queries: false
         emit_interface: true
+        sql_package: "pgx/v5"
         overrides:
           - db_type: "uuid"
-            go_type: "[github.com/google/uuid.UUID](https://github.com/google/uuid.UUID)"
+            go_type: "github.com/google/uuid.UUID"
