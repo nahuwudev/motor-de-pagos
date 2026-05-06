@@ -14,10 +14,13 @@ import (
 
 const createIdempotencyKey = `-- name: CreateIdempotencyKey :one
 INSERT INTO payments.idempotency_keys (
-    key, status, locked_at
+    -- lockd_At responde a "hace cuanto esta pasando"
+    -- status responde a "que esta pasando"
+    key, status, locked_at 
 ) VALUES (
     $1, $2, NOW()
 )
+ON CONFLICT (key) DO NOTHING
 RETURNING key, status, response_code, response_body, created_at, locked_at
 `
 

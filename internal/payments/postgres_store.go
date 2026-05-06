@@ -25,15 +25,21 @@ func (store *SQLStore) ExecuteTransferTx(ctx context.Context, arg TransferParams
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx) // Si algo explota, se deshace todo por defecto
+	err = tx.Rollback(ctx)
+
+	if err != nil {
+		return err
+	}
 
 	// 2. Le inyectamos la transacción a las queries de sqlc
 	qtx := store.queries.WithTx(tx)
 
 	// 3. ACA VA TODA TU LÓGICA DE NEGOCIO EN LA DB:
-	// - qtx.GetAccountForUpdate(origen)
+	if _, err := qtx.GetAccountForUpdate(ctx, arg.FromAccountID); err != nil {
+		return err
+	}
 	// - Validar saldo
-	// - qtx.GetAccountForUpdate(destino)
+	qtx.GetAccountForUpdate(ctx, arg.ToAccountID)
 	// - qtx.UpdateAccountBalance(...)
 	// - qtx.CreateTransaction(...)
 
