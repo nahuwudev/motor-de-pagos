@@ -12,6 +12,38 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createAccount = `-- name: CreateAccount :one
+INSERT INTO payments.accounts (
+    owner_id,
+    balance,
+    currency
+) VALUES (
+    $1, $2, $3
+)
+RETURNING id, owner_id, balance, currency, created_at, updated_at
+`
+
+type CreateAccountParams struct {
+	OwnerID  uuid.UUID `json:"owner_id"`
+	Balance  int64     `json:"balance"`
+	Currency string    `json:"currency"`
+}
+
+// Creamos una cuenta
+func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (PaymentsAccount, error) {
+	row := q.db.QueryRow(ctx, createAccount, arg.OwnerID, arg.Balance, arg.Currency)
+	var i PaymentsAccount
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.Balance,
+		&i.Currency,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createIdempotencyKey = `-- name: CreateIdempotencyKey :one
 INSERT INTO payments.idempotency_keys (
     -- lockd_At responde a "hace cuanto esta pasando"
@@ -195,19 +227,19 @@ func (q *Queries) ListAccountTransactions(ctx context.Context, arg ListAccountTr
 
 const updateAccountBalance = `-- name: UpdateAccountBalance :exec
 UPDATE payments.accounts
-SET balance = balance + $2, 
+SET balance = balance + $1, 
     updated_at = NOW()
-WHERE id = $1
+WHERE id = $2
 `
 
 type UpdateAccountBalanceParams struct {
-	ID      uuid.UUID `json:"id"`
-	Balance int64     `json:"balance"`
+	Delta int64     `json:"delta"`
+	ID    uuid.UUID `json:"id"`
 }
 
 // Actualizamos el saldo y el timestamp
 func (q *Queries) UpdateAccountBalance(ctx context.Context, arg UpdateAccountBalanceParams) error {
-	_, err := q.db.Exec(ctx, updateAccountBalance, arg.ID, arg.Balance)
+	_, err := q.db.Exec(ctx, updateAccountBalance, arg.Delta, arg.ID)
 	return err
 }
 

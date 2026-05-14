@@ -11,6 +11,8 @@ import (
 )
 
 type Querier interface {
+	// Creamos una cuenta
+	CreateAccount(ctx context.Context, arg CreateAccountParams) (PaymentsAccount, error)
 	CreateIdempotencyKey(ctx context.Context, arg CreateIdempotencyKeyParams) (PaymentsIdempotencyKey, error)
 	// Registramos el movimiento inmutable
 	CreateTransaction(ctx context.Context, arg CreateTransactionParams) (PaymentsTransaction, error)

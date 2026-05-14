@@ -1,0 +1,131 @@
+openapi: 3.0.3
+info:
+  title: Motor de Pagos
+  description: |
+    API de transferencias entre cuentas con idempotencia garantizada.
+    
+    Usa el header `Idempotency-Key` para evitar doble procesamiento.
+    Si mandás el mismo request dos veces con la misma key, el segundo
+    devuelve la respuesta cacheada sin ejecutar la transferencia de nuevo.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local
+
+paths:
+  /api/v1/payments:
+    post:
+      summary: Ejecutar transferencia
+      description: |
+        Transfiere un monto entre dos cuentas de forma atómica.
+        Requiere `Idempotency-Key` para garantizar que el doble clic
+        no genere una transferencia duplicada.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: UUID único por operación. Máximo 255 caracteres.
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+      responses:
+        '201':
+          description: Transferencia ejecutada correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferResult'
+        '400':
+          description: |
+            Parámetros inválidos. Posibles causas:
+            - Monto negativo o cero
+            - Moneda no soportada (solo ARS, USD, EUR)
+            - Cuentas origen y destino iguales
+            - Saldo insuficiente
+            - Idempotency-Key ausente o mayor a 255 caracteres
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Cuenta no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Request ya en progreso con esa Idempotency-Key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Intento anterior falló, reintentar
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    TransferRequest:
+      type: object
+      required:
+        - from_account_id
+        - to_account_id
+        - amount
+        - currency
+      properties:
+        from_account_id:
+          type: string
+          format: uuid
+          description: ID de la cuenta origen
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        to_account_id:
+          type: string
+          format: uuid
+          description: ID de la cuenta destino
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        amount:
+          type: integer
+          format: int64
+          description: Monto en centavos (siempre positivo)
+          example: 500
+        currency:
+          type: string
+          enum: [ARS, USD, EUR]
+          description: Moneda de la transferencia
+          example: "ARS"
+
+    TransferResult:
+      type: object
+      properties:
+        transaction_id:
+          type: string
+          format: uuid
+          description: ID único de la transacción generada
+          example: "770e8400-e29b-41d4-a716-446655440002"
+        status:
+          type: string
+          example: "completed"
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "insufficient funds"

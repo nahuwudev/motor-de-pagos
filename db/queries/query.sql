@@ -14,9 +14,9 @@ WHERE id = $1;
 -- name: UpdateAccountBalance :exec
 -- Actualizamos el saldo y el timestamp
 UPDATE payments.accounts
-SET balance = balance + $2, 
+SET balance = balance + sqlc.arg(delta), 
     updated_at = NOW()
-WHERE id = $1;
+WHERE id = sqlc.arg(id);
 
 -- name: CreateTransaction :one
 -- Registramos el movimiento inmutable
@@ -64,3 +64,14 @@ FROM payments.transactions
 WHERE from_account_id = $1 OR to_account_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
+
+-- name: CreateAccount :one
+-- Creamos una cuenta
+INSERT INTO payments.accounts (
+    owner_id,
+    balance,
+    currency
+) VALUES (
+    $1, $2, $3
+)
+RETURNING id, owner_id, balance, currency, created_at, updated_at;
